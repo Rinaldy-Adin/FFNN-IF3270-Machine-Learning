@@ -1,4 +1,5 @@
 import numpy as np
+import json
 from activ_func import Activation_Function, reluVect, sigmoidVect
 
 """
@@ -68,3 +69,37 @@ class FFNN:
                 current = sigmoidVect(current)
 
         return current.transpose()
+
+
+
+def readfile(filename):
+    try:
+        with open(filename, 'r') as file:
+            loader = json.load(file)
+        
+        model_info = loader.get("case", {})
+        model = model_info.get("model")
+        weights = model_info.get("weights")
+        inputs = model_info.get("input")
+
+        ffnn = FFNN(model.get('input_size'))
+        
+        # Iterate through each layer in the model
+        for i, layer_info in enumerate(model['layers']):
+            layer = Layer(np.array(weights[i]), layer_info['activation_function'])
+            ffnn.addInput(inputs[i])
+            ffnn.addLayer(layer)
+
+        return ffnn            
+
+    except FileNotFoundError:
+        print(f"Error: The file '{filename}' was not found.")
+    except json.JSONDecodeError:
+        print(f"Error: The file '{filename}' does not contain valid JSON.")
+    except KeyError as e:
+        print(f"Error: Missing expected key {e} in the JSON structure.")
+
+
+if __name__ == "__main__":
+  ffnn = readfile("models/relu.json")
+  print(ffnn.run())
