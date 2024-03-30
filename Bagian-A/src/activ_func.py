@@ -21,6 +21,10 @@ def relu(v: float):
 def sigmoid(v: float):
     return 1 / (1 + math.exp(-v))
 
+def softmax(v: float):
+    e_v = np.exp(v - np.max(v)) 
+    return e_v / e_v.sum(axis=0)
+
 
 """
 Vectorizing activation functions so
