@@ -45,6 +45,8 @@ def difficult_test():
     ffnn.addLayer(layer_4)
 
     print(ffnn.run())
+    
+    ffnn.draw_network()
 
 
 difficult_test()

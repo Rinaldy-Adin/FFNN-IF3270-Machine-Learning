@@ -32,3 +32,4 @@ functions can be easily applied to ndarrays
 """
 reluVect = np.vectorize(relu)
 sigmoidVect = np.vectorize(sigmoid)
+softmaxVect = np.vectorize(softmax)
