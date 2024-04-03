@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import json
-from activ_func import Activation_Function, reluVect, sigmoidVect, softmaxVect
+from activ_func import Activation_Function, reluVect, sigmoidVect, softmax
 
 """
 Layer object class
@@ -53,7 +53,7 @@ class FFNN:
         
         o_flat = output.ravel()
         e_flat = self._expected.ravel()
-        sse = 0
+        sse = 0.0
         for idx, o_val in enumerate(o_flat):
             e_val = e_flat[idx]
             sse += (o_val - e_val) ** 2
@@ -73,18 +73,18 @@ class FFNN:
         current = np.array(self._input).transpose()
         bias = np.array([[1.0 for _ in self._input]])
 
-        for layer in self._layers:
+        for idx, layer in enumerate(self._layers):
             current = np.concatenate((bias, current), axis=0)
 
             new_current = layer.w.transpose() @ current
             current = new_current
-            
+
             if layer.activ_func == Activation_Function.RELU:
                 current = reluVect(current)
             elif layer.activ_func == Activation_Function.SIGMOID:
                 current = sigmoidVect(current)
             elif layer.activ_func == Activation_Function.SOFTMAX:
-                current = softmaxVect(current)
+                current = softmax(current)
 
         current = current.transpose()
         sse = self.calc_sse(current)
