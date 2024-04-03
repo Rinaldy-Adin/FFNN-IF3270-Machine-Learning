@@ -8,10 +8,10 @@ class Activation_Function(Enum):
     Activation Function Enums
     """
 
-    LINEAR = 1
-    RELU = 2
-    SIGMOID = 3
-    SOFTMAX = 4
+    LINEAR = "linear"
+    RELU = "relu"
+    SIGMOID = "sigmoid"
+    SOFTMAX = "softmax"
 
 
 def relu(v: float):

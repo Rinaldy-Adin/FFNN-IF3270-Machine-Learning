@@ -21,8 +21,10 @@ class Layer:
 Feed Forward Neural Network object class
 """
 class FFNN:
-    def __init__(self, input_size: int) -> None:
+    def __init__(self, input_size: int, expected: np.ndarray[float], max_sse: float) -> None:
         self._input_size = input_size
+        self._expected = expected
+        self._max_sse = max_sse
         self._input: list[list[float]] = []
         self._layers: list[Layer] = []
 
@@ -45,7 +47,20 @@ class FFNN:
 
         self._layers.append(newLayer)
 
-    def run(self):
+    def calc_sse(self, output: np.ndarray[float]) -> float:
+        if output.shape != self._expected.shape:
+            raise RuntimeError("Output dimensions and expect dimensions do not match")
+        
+        o_flat = output.ravel()
+        e_flat = self._expected.ravel()
+        sse = 0
+        for idx, o_val in enumerate(o_flat):
+            e_val = e_flat[idx]
+            sse += (o_val - e_val) ** 2
+
+        return sse
+
+    def run(self) -> tuple[np.ndarray, float, bool]:
         """
         Works by iterating through each layer's weight matrix
         
@@ -64,15 +79,17 @@ class FFNN:
             new_current = layer.w.transpose() @ current
             current = new_current
             
-            if layer.activ_func == "relu":
+            if layer.activ_func == Activation_Function.RELU:
                 current = reluVect(current)
-            elif layer.activ_func == "sigmoid":
+            elif layer.activ_func == Activation_Function.SIGMOID:
                 current = sigmoidVect(current)
-            elif layer.activ_func == "softmax":
+            elif layer.activ_func == Activation_Function.SOFTMAX:
                 current = softmaxVect(current)
 
-        return current.transpose()
-    
+        current = current.transpose()
+        sse = self.calc_sse(current)
+        return (current, sse, sse < self._max_sse)
+
     def draw_network(self, save_path="ffnn_graph.png") -> None:
             fig, ax = plt.subplots(figsize=(15, 10))
             ax.set_aspect('equal')
@@ -134,7 +151,6 @@ Output Layer : Red
                   """)
             plt.close()
 
-
 def readfile(filename):
     try:
         with open(filename, 'r') as file:
@@ -144,17 +160,19 @@ def readfile(filename):
         model = model_info.get("model")
         weights = model_info.get("weights")
         inputs = model_info.get("input")
+        expected = loader.get("expect").get("output")
+        max_sse = loader.get("expect").get("max_sse")
 
-        ffnn = FFNN(model.get('input_size'))
+        ffnn = FFNN(model.get('input_size'), np.array(expected), max_sse)
         
         # Iterate through each layer in the model
         for i in range(len(inputs)):
             ffnn.addInput(inputs[i])
         for i, layer_info in enumerate(model['layers']):
-            layer = Layer(np.array(weights[i]), layer_info['activation_function'])
+            layer = Layer(np.array(weights[i]), Activation_Function(layer_info['activation_function']))
             ffnn.addLayer(layer)
 
-        return ffnn            
+        return ffnn
 
     except FileNotFoundError:
         print(f"Error: The file '{filename}' was not found.")
@@ -165,5 +183,9 @@ def readfile(filename):
 
 
 if __name__ == "__main__":
-  ffnn = readfile("models/multilayer_softmax.json")
-  print(ffnn.run())
+    ffnn = readfile("../models/multilayer_softmax.json")
+  
+    output, sse, success = ffnn.run()
+    print(f"Output : {output}")
+    print(f"sse : {sse}")
+    print("Errors less than max_sse (Success)" if success else "Errors more than max_sse (Fail)")
