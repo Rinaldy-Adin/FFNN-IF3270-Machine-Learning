@@ -64,11 +64,11 @@ class FFNN:
             new_current = layer.w.transpose() @ current
             current = new_current
             
-            if layer.activ_func == Activation_Function.RELU:
+            if layer.activ_func == "relu":
                 current = reluVect(current)
-            elif layer.activ_func == Activation_Function.SIGMOID:
+            elif layer.activ_func == "sigmoid":
                 current = sigmoidVect(current)
-            elif layer.activ_func == Activation_Function.SOFTMAX:
+            elif layer.activ_func == "softmax":
                 current = softmaxVect(current)
 
         return current.transpose()
@@ -165,5 +165,5 @@ def readfile(filename):
 
 
 if __name__ == "__main__":
-  ffnn = readfile("models/relu.json")
+  ffnn = readfile("models/multilayer_softmax.json")
   print(ffnn.run())

@@ -21,7 +21,7 @@ def relu(v: float):
 def sigmoid(v: float):
     return 1 / (1 + math.exp(-v))
 
-def softmax(v: float):
+def softmaxVect(v: float):
     e_v = np.exp(v - np.max(v)) 
     return e_v / e_v.sum(axis=0)
 
@@ -32,4 +32,3 @@ functions can be easily applied to ndarrays
 """
 reluVect = np.vectorize(relu)
 sigmoidVect = np.vectorize(sigmoid)
-softmaxVect = np.vectorize(softmax)
