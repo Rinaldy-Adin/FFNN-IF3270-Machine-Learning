@@ -1,6 +1,8 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import json
+import pickle
+import copy
 from activ_func import Activation_Function, reluVect, sigmoidVect, softmax
 
 """
@@ -151,6 +153,25 @@ Output Layer : Red
                   """)
             plt.close()
 
+    def save_model(self, filename: str):
+        """
+        Menyimpan model ke dalam file menggunakan pickle, tanpa menyertakan atribut input.
+        """
+        # Membuat salinan sementara dari objek model untuk menghapus atribut input
+        temp_model = copy.deepcopy(self)
+        del temp_model._input  # Menghapus atribut input
+        
+        with open(filename, 'wb') as file:
+            pickle.dump(temp_model, file)
+        
+    def replaceInput(self, newInputs: list[list[float]]):
+        # Mengecek dulu apakah setiap input baru sesuai dengan ukuran input yang diharapkan
+        for input in newInputs:
+            if self._input_size != len(input):
+                raise RuntimeError("One of the new inputs does not match the expected input size.")
+        # Jika semua input sesuai, ganti input lama dengan yang baru
+        self._input = newInputs
+
 def readfile(filename):
     try:
         with open(filename, 'r') as file:
@@ -181,11 +202,29 @@ def readfile(filename):
     except KeyError as e:
         print(f"Error: Missing expected key {e} in the JSON structure.")
 
+def load_model(filename: str) -> FFNN:
+    """
+    Memuat model dari file yang telah disimpan menggunakan pickle.
+    """
+    with open(filename, 'rb') as file:
+        model = pickle.load(file)
+    return model
 
 if __name__ == "__main__":
     ffnn = readfile("../models/multilayer_softmax.json")
   
     output, sse, success = ffnn.run()
+    ffnn.save_model("tes.pkl")
     print(f"Output : {output}")
     print(f"sse : {sse}")
     print("Errors less than max_sse (Success)" if success else "Errors more than max_sse (Fail)")
+
+    loaded = load_model("tes.pkl")
+    loaded.replaceInput([
+      [0.1, -0.8, 1, 1.5]
+    ])
+    output, sse, success = loaded.run()
+    print(f"Output : {output}")
+    print(f"sse : {sse}")
+    print("Errors less than max_sse (Success)" if success else "Errors more than max_sse (Fail)")
+
