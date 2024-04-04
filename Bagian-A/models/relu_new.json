@@ -1,0 +1,28 @@
+{
+    "case": {
+      "model": {
+        "input_size": 2,
+        "layers": [
+          {
+            "number_of_neurons": 3,
+            "activation_function": "relu"
+          }
+        ]
+      },
+      "input": [
+        [1.5, -0.45]
+      ],
+      "weights": [
+          [
+            [0.1, 0.2, 0.3],
+            [0.47, -0.6, 0.2],
+            [1.1, -1.3, 0.5]
+          ]
+      ]
+    },
+    "expect": {
+      "output": [[0.31, 0, 0.375]],
+      "max_sse": 0.000001
+    }
+  }
+  
