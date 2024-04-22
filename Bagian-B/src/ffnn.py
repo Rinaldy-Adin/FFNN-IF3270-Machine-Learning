@@ -7,6 +7,8 @@ import copy
 from activ_func import Activation_Function, reluVect, sigmoidVect, softmax
 from backprop_func import delta_linear_output, delta_relu_output, delta_sigmoid_output, delta_softmax_output, delta_linear_hidden, delta_relu_hidden, delta_sigmoid_hidden, delta_softmax_hidden
 
+ITER_LIMIT = 1000
+
 class Layer:
     def __init__(self, w: np.ndarray[float], activ_func: Activation_Function) -> None:
         if (w.ndim != 2):
@@ -19,11 +21,13 @@ class Layer:
 
 
 class FFNN:
-    def __init__(self, n_inputs: int, n_classes: int, learning_rate: float, batch_size: int, max_iter: int) -> None:
+    def __init__(self, n_inputs: int, n_classes: int, learning_rate: float, batch_size: int, max_iter: int, error_threshold: float, stopped_by: str) -> None:
         self._n_inputs = n_inputs
         self._n_classes = n_classes
         self._batch_size = batch_size
         self._max_iter = max_iter
+        self._error_threshold = error_threshold
+        self._use_max_iter = stopped_by == "max_iteration"
 
         self._targets: list[list[float]] = []
         self._input: list[list[float]] = []
@@ -62,9 +66,27 @@ class FFNN:
 
         self._layers.append(newLayer)
 
+    def calc_error(self, output: list[float], target: list[float], use_log: bool):
+        if use_log:
+            for idx, o_val in enumerate(output):
+                if target[idx] == 1.0:
+                    return - np.log(o_val)
+            return float('inf')
+        else:
+            err = 0.0
+            for idx, o_val in enumerate(output):
+                err += (target[idx] - o_val) ** 2
+            err /= 2.0
+            return err
+
     def feed_forward(self):
-        for iter in range(self._max_iter):
+        for iter in range(ITER_LIMIT):
+            if iter == self._max_iter:
+                return
+
             self.init_batch_grad()
+            iter_error = 0.0
+
             for idx, cur_input in enumerate(self._input):
                 layer_inputs: list[list[float]] = []
                 layer_nets: list[list[float]] = []
@@ -87,42 +109,30 @@ class FFNN:
                     elif layer.activ_func == Activation_Function.SOFTMAX:
                         current = softmax(current)
 
+                iter_error += self.calc_error(np.transpose(current).tolist()[0], self._targets[idx], layer.activ_func == Activation_Function.SOFTMAX)
                 target = self._targets[idx]
                 self._current_output = current
                 self.backwards_propagation(layer_inputs, layer_nets, target, iter, idx)
 
                 if (idx + 1) % self._batch_size == 0 or idx + 1 == len(self._input):
                     self.update_weights()
-                    # print(f"grads {iter}:")
-                    # print(self._batch_grad[0])
-                    # print()
                     self.init_batch_grad()
+            
+            if not self._use_max_iter and iter_error <= self._error_threshold:
+                return
+
+        if not self._use_max_iter:
+            print("Using error_threshold to stop but hit ITER_LIMIT to stop program to run indefinitely")
 
     def update_weights(self):
         for idx in range(len(self._layers)):
-            # print(f"layer {idx}")
-            # print(self._batch_grad[idx])
-            # print()
             self._layers[idx].w += self._batch_grad[idx]
 
-    def update_batch_grad(self, layer_idx: int, delta: np.ndarray, layer_input: np.ndarray):
+    def update_batch_grad(self, layer_idx: int, delta: np.ndarray, layer_input: np.ndarray, hidden: bool):
         grad = layer_input * delta * self._learning_rate
-
-        # print(f"layer {layer_idx}")
-        # print(grad)
-        # print()
-
         self._batch_grad[layer_idx] += grad
 
     def backwards_propagation(self, layer_inputs: list[list[float]], layer_nets: list[list[float]], target: list[float], iter: int, input_idx: int):
-        # print("Inputs:")
-        # print(layer_inputs)
-
-        # print()
-        # print("nets:")
-        # print(layer_nets)
-        # print()
-
         ds_delta: np.ndarray = None
         for idx, layer in enumerate(reversed(self._layers)):
             layer_idx = (-1-idx) % len(self._layers)
@@ -139,44 +149,28 @@ class FFNN:
                     ds_delta = delta_sigmoid_output(self._current_output, target_mat)
                 else:
                     ds_delta = delta_linear_output(self._current_output, target_mat)
-
-                # print(self._layers[layer_idx].activ_func)
-                # print(f"nets {input_idx} {layer_idx}:")
-                # print(nets)
-                # print()
-                # print(f"target_mat {input_idx} {layer_idx}:")
-                # print(target_mat)
-                # print()
-
-                # print(f"delta {input_idx} {layer_idx}:")
-                # print(ds_delta)
-                # print()
             else:
                 cur_delta = None
-                layer_outputs = np.array(layer_inputs[layer_idx + 1][1:])
+                layer_outputs = np.array([layer_inputs[layer_idx + 1][0][1:]])
 
                 if layer.activ_func == Activation_Function.SOFTMAX:
-                    cur_delta = delta_softmax_hidden(layer_outputs, ds_delta, self._layers[layer_idx + 1].w, layer.n_inputs)
+                    cur_delta = delta_softmax_hidden(layer_outputs, ds_delta, self._layers[layer_idx + 1].w)
                 elif layer.activ_func == Activation_Function.RELU:
-                    cur_delta = delta_relu_hidden(nets, ds_delta, self._layers[layer_idx + 1].w, layer.n_inputs)
+                    cur_delta = delta_relu_hidden(nets, ds_delta, self._layers[layer_idx + 1].w)
                 elif layer.activ_func == Activation_Function.SIGMOID:
                     cur_delta = delta_sigmoid_hidden(layer_outputs, ds_delta, self._layers[layer_idx + 1].w)
                 else:
                     cur_delta = delta_linear_hidden(ds_delta, self._layers[layer_idx + 1].w)
 
-                # print("cur_delta")
-                # print(cur_delta)
-                # print()
-
                 ds_layer_input = np.array(layer_inputs[layer_idx + 1]).transpose()
-                self.update_batch_grad(layer_idx + 1, ds_delta,ds_layer_input)
+                self.update_batch_grad(layer_idx + 1, ds_delta,ds_layer_input, False)
                 ds_delta = cur_delta
 
         ds_layer_input = np.array(layer_inputs[0]).transpose()
-        self.update_batch_grad(0, ds_delta, ds_layer_input)
+        self.update_batch_grad(0, ds_delta, ds_layer_input, True)
 
 if __name__ == "__main__":
-    with open('../models/mlp_sigmoid.json', 'r') as f:
+    with open('../models/softmax.json', 'r') as f:
         json_data = json.load(f)
 
     # Extract data from JSON
@@ -188,9 +182,11 @@ if __name__ == "__main__":
     n_classes = json_data['case']['model']['layers'][-1]['number_of_neurons']
     batch_size = json_data['case']['learning_parameters']['batch_size']
     max_iter = json_data['case']['learning_parameters']['max_iteration']
+    error_threshold = json_data['case']['learning_parameters']['error_threshold']
     layer_config = json_data['case']['model']['layers']
+    stopped_by = json_data['expect']['stopped_by']
 
-    fnaf = FFNN(input_size, n_classes, learning_rate, batch_size, max_iter)
+    fnaf = FFNN(input_size, n_classes, learning_rate, batch_size, max_iter, error_threshold, stopped_by)
 
     for idx, input in enumerate(input_data):
         fnaf.addInput(input, target_data[idx])

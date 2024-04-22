@@ -88,28 +88,30 @@ def delta_sigmoid_hidden(
     sigma_list = np.sum(sigma_delta_w, axis=1).transpose()
     sigma_nets = np.array([sigma_list[1:]])
 
-    output_mat = np.transpose(output)
-    res = d_sigmoid_vect(sigma_nets, output_mat)
+    res = d_sigmoid_vect(sigma_nets, output)
 
     return res
 
 # TODO fix
 def delta_softmax_hidden(
-    output: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
+    output: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray
 ):
+    sigma_delta_w = ds_delta * ds_w
+    sigma_list = np.sum(sigma_delta_w, axis=1).transpose()
+    sigma_delta_w_nets = np.array([sigma_list[1:]])
+
+    o_list = np.transpose(output).tolist()[0]
+
     output_deltas = []
-    o_list: list[float] = np.transpose(output).tolist()[0]
-
-    ds_sums: list[float] = [np.sum(ds_delta[j] * ds_w[j]) for j in range(len(ds_delta))]
-
     for i, oi in enumerate(o_list):
-        o_sum = 0
+        z = []
         for j, oj in enumerate(o_list):
-            if (i == j):
-                do_dnet = oi * (1 - oj)
+            if i == j:
+                z.append(oi * (1 - oj))
             else:
-                do_dnet = -oi * oj
-            o_sum += do_dnet * ds_sums[j]
-        output_deltas.append(o_sum)
-    
-    return np.tile(np.array([output_deltas]), reps=(n_inputs, 1))
+                z.append(-(oi * oj))
+        z_mat = np.array([z]).transpose()
+        res_mat = z_mat @ sigma_delta_w_nets
+        output_deltas.append(res_mat[0][0])
+
+    return np.array([output_deltas])
