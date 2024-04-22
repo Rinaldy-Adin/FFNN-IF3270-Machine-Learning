@@ -8,6 +8,7 @@ from activ_func import Activation_Function, reluVect, sigmoidVect, softmax
 from backprop_func import delta_linear_output, delta_relu_output, delta_sigmoid_output, delta_softmax_output, delta_linear_hidden, delta_relu_hidden, delta_sigmoid_hidden, delta_softmax_hidden
 
 ITER_LIMIT = 1000
+MAX_SSE = 1e-7
 
 class Layer:
     def __init__(self, w: np.ndarray[float], activ_func: Activation_Function) -> None:
@@ -169,6 +170,14 @@ class FFNN:
         ds_layer_input = np.array(layer_inputs[0]).transpose()
         self.update_batch_grad(0, ds_delta, ds_layer_input, True)
 
+def calc_weights_sse(layers: list[Layer], expected: list[list[list[float]]]):
+    sse = 0.0
+    for idx, layer in enumerate(layers):
+        for row_idx, row in enumerate(layer.w):
+            for col_idx, res_w in enumerate(row):
+                sse += (res_w - expected[idx][row_idx][col_idx]) ** 2
+    return sse
+
 if __name__ == "__main__":
     with open('../models/softmax.json', 'r') as f:
         json_data = json.load(f)
@@ -185,6 +194,7 @@ if __name__ == "__main__":
     error_threshold = json_data['case']['learning_parameters']['error_threshold']
     layer_config = json_data['case']['model']['layers']
     stopped_by = json_data['expect']['stopped_by']
+    expected_weights = json_data['expect']['final_weights']
 
     fnaf = FFNN(input_size, n_classes, learning_rate, batch_size, max_iter, error_threshold, stopped_by)
 
@@ -203,7 +213,22 @@ if __name__ == "__main__":
     
     fnaf.feed_forward()
     
+    print("Result:")
     for idx, layer in enumerate(fnaf._layers):
-        print(f"layer {idx}")
+        print(f"Layer {idx}")
         print(layer.w)
         print()
+
+    print("Expected:")
+    for idx, w in enumerate(expected_weights):
+        print(f"Layer {idx}")
+        print(np.array(w))
+        print()
+
+
+    sse = calc_weights_sse(fnaf._layers, expected_weights)
+    print(f"Total SSE: {sse}")
+    if sse <= MAX_SSE:
+        print("SUCCESS: Weights yang dihasilkan sesuai dengan final_weights")
+    else:
+        print("FAIL: Weights yang dihasilkan belum sesuai dengan final_weights")
