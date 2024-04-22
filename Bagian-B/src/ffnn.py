@@ -19,17 +19,22 @@ class Layer:
 
 
 class FFNN:
-    def __init__(self, n_inputs: int, n_classes: int, learning_rate: float) -> None:
+    def __init__(self, n_inputs: int, n_classes: int, learning_rate: float, batch_size: int) -> None:
         self._n_inputs = n_inputs
         self._n_classes = n_classes
+        self._batch_size = batch_size
 
         self._targets: list[list[float]] = []
         self._input: list[list[float]] = []
         self._layers: list[Layer] = []
+        self._batch_grad: list[np.ndarray[float]] = []
 
         self._current_output: np.ndarray = None
 
         self._learning_rate = learning_rate
+
+    def init_batch_grad(self):
+        self._batch_grad = [np.zeros(shape=(layer.n_inputs, layer.n_neurons)) for layer in self._layers]
 
     def get_output(self):
         return np.transpose(self._current_output).tolist()
@@ -57,7 +62,8 @@ class FFNN:
         self._layers.append(newLayer)
 
     def feed_forward(self):
-        for cur_input in self._input:
+        self.init_batch_grad()
+        for idx, cur_input in enumerate(self._input):
             layer_inputs: list[list[float]] = []
             layer_nets: list[list[float]] = []
 
@@ -79,23 +85,31 @@ class FFNN:
                 elif layer.activ_func == Activation_Function.SOFTMAX:
                     current = softmax(current)
 
+            target = self._targets[idx]
             self._current_output = current
-            self.backwards_propagation(layer_inputs, layer_nets)
+            self.backwards_propagation(layer_inputs, layer_nets, target)
 
-    def update_w(self, layer_idx: int, delta: np.ndarray, inputs: list[float]):
+            if idx + 1 == self._batch_size:
+                self.update_weights()
+                self.init_batch_grad()
+
+    def update_weights(self):
+        for idx in range(len(self._layers)):
+            # print(f"layer {idx}")
+            # print(self._batch_grad[idx])
+            # print()
+            self._layers[idx].w += self._batch_grad[idx]
+
+    def update_batch_grad(self, layer_idx: int, delta: np.ndarray):
         grad = delta * self._learning_rate
 
-        # print("delta:")
-        # print(delta)
-        # print()
+        print(f"layer {layer_idx}")
+        print(grad)
+        print()
 
-        # print("grad:")
-        # print(grad)
-        # print()
+        self._batch_grad[layer_idx] += grad
 
-        self._layers[layer_idx].w += grad
-
-    def backwards_propagation(self, layer_inputs: list[list[float]], layer_nets: list[list[float]]):
+    def backwards_propagation(self, layer_inputs: list[list[float]], layer_nets: list[list[float]], target: list[float]):
         # print("Inputs:")
         # print(layer_inputs)
 
@@ -110,17 +124,21 @@ class FFNN:
             nets = np.array(layer_nets[layer_idx]).transpose()
 
             if idx == 0:
-                target = np.array(self._targets[layer_idx]).transpose()
+                target_mat = np.array(target).transpose()
                 cur_layer_input = np.array(layer_inputs[layer_idx]).transpose()
 
                 if layer.activ_func == Activation_Function.SOFTMAX:
-                    ds_delta = delta_softmax_output(self._current_output, target, layer.n_inputs)
+                    ds_delta = delta_softmax_output(self._current_output, target_mat, layer.n_inputs)
                 elif layer.activ_func == Activation_Function.RELU:
-                    ds_delta = delta_relu_output(self._current_output, target, nets, layer.n_inputs)
+                    ds_delta = delta_relu_output(self._current_output, target_mat, nets, layer.n_inputs)
                 elif layer.activ_func == Activation_Function.SIGMOID:
-                    ds_delta = delta_sigmoid_output(self._current_output, target, layer.n_inputs)
+                    ds_delta = delta_sigmoid_output(self._current_output, target_mat, layer.n_inputs)
                 else:
-                    ds_delta = delta_linear_output(self._current_output, target, cur_layer_input)
+                    ds_delta = delta_linear_output(self._current_output, target_mat, cur_layer_input)
+
+                # print("target_mat:")
+                # print(target_mat)
+                # print()
 
                 # print("delta:")
                 # print(ds_delta)
@@ -138,10 +156,10 @@ class FFNN:
                 else:
                     cur_delta = delta_linear_hidden(ds_delta, self._layers[layer_idx + 1].w, layer.n_inputs)
 
-                self.update_w(layer_idx + 1, ds_delta, layer_inputs[layer_idx + 1])
+                self.update_batch_grad(layer_idx + 1, ds_delta)
                 ds_delta = cur_delta
 
-        self.update_w(0, ds_delta, layer_inputs[0])
+        self.update_batch_grad(0, ds_delta)
 
 # if __name__ == "__main__":
 #     n_attr = 4
@@ -182,17 +200,19 @@ class FFNN:
 #     print(fnaf.get_output())
 
 if __name__ == "__main__":
-    with open('../models/linear_1.json', 'r') as f:
+    with open('../models/linear.json', 'r') as f:
         json_data = json.load(f)
 
     # Extract data from JSON
     input_size = json_data['case']['model']['input_size']
     input_data = np.array(json_data['case']['input'])
     target_data = np.array(json_data['case']['target'])
-    learning_rate = np.array(json_data['case']['learning_parameters']['learning_rate'])
+    learning_rate = json_data['case']['learning_parameters']['learning_rate']
     initial_weights = [np.array(layer) for layer in json_data['case']['initial_weights']]
+    n_classes = json_data['case']['model']['layers'][-1]['number_of_neurons']
+    batch_size = json_data['case']['learning_parameters']['batch_size']
 
-    fnaf = FFNN(input_size, 3, learning_rate)
+    fnaf = FFNN(input_size, n_classes, learning_rate, batch_size)
 
     for idx, input in enumerate(input_data):
         fnaf.addInput(input, target_data[idx])
