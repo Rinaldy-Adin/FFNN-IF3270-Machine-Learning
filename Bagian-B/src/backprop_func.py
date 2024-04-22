@@ -21,13 +21,12 @@ def delta_linear_output(output: np.ndarray, target: np.ndarray, layer_inputs: np
 
     return layer_inputs * (target_mat - output_mat)
 
-# TODO fix
-def delta_relu_output(output: np.ndarray, target: np.ndarray, nets: np.ndarray, n_inputs: int):
-    output_mat = np.tile(np.transpose(output), reps=(n_inputs, 1))
-    target_mat = np.tile(np.transpose(target), reps=(n_inputs, 1))
-    nets_mat = np.tile(np.transpose(nets), reps=(n_inputs, 1))
+def delta_relu_output(output: np.ndarray, target: np.ndarray, nets: np.ndarray, layer_inputs: np.ndarray):
+    output_mat = np.transpose(output)
+    target_mat = np.transpose(target)
+    nets_mat = np.transpose(nets)
 
-    return d_relu_vect(target_mat - output_mat, nets_mat)
+    return layer_inputs * d_relu_vect(target_mat - output_mat, nets_mat)
 
 # TODO fix
 def delta_sigmoid_output(output: np.ndarray, target: np.ndarray, n_inputs: int):
