@@ -21,6 +21,13 @@ def d_softmax_vect(o: np.ndarray, target: np.ndarray):
             res[row_idx][col_idx] = 1-o_val if target[col_idx] == 1.0 else -o_val
     return res
 
+def d_sigmoid_vect(sigma_w_delta: np.ndarray, outputs: np.ndarray):
+    res = np.copy(sigma_w_delta)
+    for row_idx, row in enumerate(outputs):
+        for col_idx, o_val in enumerate(row):
+            res[row_idx][col_idx] *= o_val * (1-o_val)
+    return res
+
 """
 All variables output, target, nets, layer_input are in the form of
 single column matrix
@@ -62,7 +69,7 @@ def delta_linear_hidden(
     return np.array([sigma_list[1:]])
 
 def delta_relu_hidden(
-    nets: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
+    nets: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray
 ):
     sigma_delta_w = ds_delta * ds_w
     sigma_list = np.sum(sigma_delta_w, axis=1).transpose()
@@ -74,16 +81,17 @@ def delta_relu_hidden(
     return res
 
 
-# TODO fix
 def delta_sigmoid_hidden(
-    output: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
+    output: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray
 ):
-    output_vect = np.transpose(output)
-    output_vect = output_vect * (1 - output_vect)
+    sigma_delta_w = ds_delta * ds_w
+    sigma_list = np.sum(sigma_delta_w, axis=1).transpose()
+    sigma_nets = np.array([sigma_list[1:]])
 
-    sigma_vect = np.array([[np.sum(ds_delta[row_idx] * ds_w[row_idx]) for row_idx in range(ds_w.shape[0])]])
+    output_mat = np.transpose(output)
+    res = d_sigmoid_vect(sigma_nets, output_mat)
 
-    return np.tile(output_vect * sigma_vect, reps=(n_inputs, 1))
+    return res
 
 # TODO fix
 def delta_softmax_hidden(

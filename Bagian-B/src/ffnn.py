@@ -160,7 +160,7 @@ class FFNN:
                 elif layer.activ_func == Activation_Function.RELU:
                     cur_delta = delta_relu_hidden(nets, ds_delta, self._layers[layer_idx + 1].w, layer.n_inputs)
                 elif layer.activ_func == Activation_Function.SIGMOID:
-                    cur_delta = delta_sigmoid_hidden(layer_outputs, ds_delta, self._layers[layer_idx + 1].w, layer.n_inputs)
+                    cur_delta = delta_sigmoid_hidden(layer_outputs, ds_delta, self._layers[layer_idx + 1].w)
                 else:
                     cur_delta = delta_linear_hidden(ds_delta, self._layers[layer_idx + 1].w)
 
@@ -176,7 +176,7 @@ class FFNN:
         self.update_batch_grad(0, ds_delta, ds_layer_input)
 
 if __name__ == "__main__":
-    with open('../models/mlp_relu.json', 'r') as f:
+    with open('../models/mlp_sigmoid.json', 'r') as f:
         json_data = json.load(f)
 
     # Extract data from JSON
