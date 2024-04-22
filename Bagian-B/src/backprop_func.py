@@ -61,15 +61,17 @@ def delta_linear_hidden(
 
     return np.array([sigma_list[1:]])
 
-# TODO fix
 def delta_relu_hidden(
     nets: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
 ):
-    nets_vect = np.transpose(nets)
-    # TODO check if this handles bias correctly
-    sigma_vect = np.array([[np.sum(ds_delta[row_idx] * ds_w[row_idx]) for row_idx in range(ds_w.shape[0])]])
+    sigma_delta_w = ds_delta * ds_w
+    sigma_list = np.sum(sigma_delta_w, axis=1).transpose()
+    sigma_nets = np.array([sigma_list[1:]])
 
-    return np.tile(d_relu_vect(sigma_vect, nets_vect), reps=(n_inputs, 1))
+    nets_mat = np.transpose(nets)
+    res = d_relu_vect(sigma_nets, nets_mat)
+
+    return res
 
 
 # TODO fix

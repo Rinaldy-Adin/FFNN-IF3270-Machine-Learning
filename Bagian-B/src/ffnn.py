@@ -175,46 +175,8 @@ class FFNN:
         ds_layer_input = np.array(layer_inputs[0]).transpose()
         self.update_batch_grad(0, ds_delta, ds_layer_input)
 
-# if __name__ == "__main__":
-#     n_attr = 4
-#     n_classes = 3
-#     learning_rate = 0.2
-
-#     fnaf = FFNN(n_attr, n_classes, learning_rate)
-
-#     data = []
-
-#     with open('../data/iris.csv', newline='') as f:
-#         reader = csv.reader(f)
-#         data = list(reader)[1:]
-
-#     for row in data[:50]:
-#         inputs = list(map(float, row[1:5]))
-
-#         if row[5] == "Iris-setosa":
-#             target = [1.0,0.0,0.0]
-#         elif row[5] == "Iris-versicolor":
-#             target = [0.0,1.0,0.0]
-#         else:
-#             target = [0.0,0.0,1.0]
-        
-#         fnaf.addInput(inputs, target)
-
-#     w_hidden = np.random.uniform(-0.5, 0.5, size=(5, 4))
-#     w_out = np.random.uniform(-0.5, 0.5, size=(5, 3))
-
-#     layer_hidden = Layer(w_hidden, Activation_Function.RELU)
-#     layer_out = Layer(w_out, Activation_Function.SIGMOID)
-
-#     fnaf.addLayer(layer_hidden)
-#     fnaf.addLayer(layer_out)
-
-#     fnaf.feed_forward()
-
-#     print(fnaf.get_output())
-
 if __name__ == "__main__":
-    with open('../models/mlp.json', 'r') as f:
+    with open('../models/mlp_relu.json', 'r') as f:
         json_data = json.load(f)
 
     # Extract data from JSON
