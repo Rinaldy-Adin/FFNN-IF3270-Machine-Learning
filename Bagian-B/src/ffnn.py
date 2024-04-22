@@ -134,7 +134,7 @@ class FFNN:
                 elif layer.activ_func == Activation_Function.RELU:
                     ds_delta = delta_relu_output(self._current_output, target_mat, nets, cur_layer_input)
                 elif layer.activ_func == Activation_Function.SIGMOID:
-                    ds_delta = delta_sigmoid_output(self._current_output, target_mat, layer.n_inputs)
+                    ds_delta = delta_sigmoid_output(self._current_output, target_mat, cur_layer_input)
                 else:
                     ds_delta = delta_linear_output(self._current_output, target_mat, cur_layer_input)
 
@@ -198,7 +198,7 @@ class FFNN:
 #     print(fnaf.get_output())
 
 if __name__ == "__main__":
-    with open('../models/relu_b.json', 'r') as f:
+    with open('../models/sigmoid.json', 'r') as f:
         json_data = json.load(f)
 
     # Extract data from JSON
@@ -217,7 +217,7 @@ if __name__ == "__main__":
         fnaf.addInput(input, target_data[idx])
 
     for w in initial_weights:
-        fnaf.addLayer(Layer(w, Activation_Function.RELU))
+        fnaf.addLayer(Layer(w, Activation_Function.SIGMOID))
     
     fnaf.feed_forward()
     

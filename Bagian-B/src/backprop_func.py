@@ -28,12 +28,11 @@ def delta_relu_output(output: np.ndarray, target: np.ndarray, nets: np.ndarray, 
 
     return layer_inputs * d_relu_vect(target_mat - output_mat, nets_mat)
 
-# TODO fix
-def delta_sigmoid_output(output: np.ndarray, target: np.ndarray, n_inputs: int):
-    output_mat = np.tile(np.transpose(output), reps=(n_inputs, 1))
-    target_mat = np.tile(np.transpose(target), reps=(n_inputs, 1))
+def delta_sigmoid_output(output: np.ndarray, target: np.ndarray, layer_inputs: np.ndarray):
+    output_mat = np.transpose(output)
+    target_mat = np.transpose(target)
     
-    return (target_mat - output_mat) * output_mat * (1 - output_mat)
+    return layer_inputs * ((target_mat - output_mat) * output_mat * (1 - output_mat))
 
 # TODO fix
 def delta_softmax_output(output: np.ndarray, target: np.ndarray, n_inputs: int):
