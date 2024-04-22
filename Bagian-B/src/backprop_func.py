@@ -11,15 +11,17 @@ def d_softmax(o: float, net: float):
 d_softmax_vect = np.vectorize(d_softmax)
 
 """
-All variables output, target, nets are in the form of
+All variables output, target, nets, layer_input are in the form of
 single column matrix
 """
 
-def delta_linear_output(output: np.ndarray, target: np.ndarray, n_inputs: int):
-    output_mat = np.tile(np.transpose(output), reps=(n_inputs, 1))
-    target_mat = np.tile(np.transpose(target), reps=(n_inputs, 1))
-    return target_mat - output_mat
+def delta_linear_output(output: np.ndarray, target: np.ndarray, layer_inputs: np.ndarray):
+    output_mat = np.transpose(output)
+    target_mat = np.transpose(target)
 
+    return layer_inputs * (target_mat - output_mat)
+
+# TODO fix
 def delta_relu_output(output: np.ndarray, target: np.ndarray, nets: np.ndarray, n_inputs: int):
     output_mat = np.tile(np.transpose(output), reps=(n_inputs, 1))
     target_mat = np.tile(np.transpose(target), reps=(n_inputs, 1))
@@ -27,18 +29,21 @@ def delta_relu_output(output: np.ndarray, target: np.ndarray, nets: np.ndarray, 
 
     return d_relu_vect(target_mat - output_mat, nets_mat)
 
+# TODO fix
 def delta_sigmoid_output(output: np.ndarray, target: np.ndarray, n_inputs: int):
     output_mat = np.tile(np.transpose(output), reps=(n_inputs, 1))
     target_mat = np.tile(np.transpose(target), reps=(n_inputs, 1))
     
     return (target_mat - output_mat) * output_mat * (1 - output_mat)
 
+# TODO fix
 def delta_softmax_output(output: np.ndarray, target: np.ndarray, n_inputs: int):
     output_mat = np.tile(np.transpose(output), reps=(n_inputs, 1))
     target_mat = np.tile(np.transpose(target), reps=(n_inputs, 1))
 
     return d_softmax_vect(output_mat, target_mat)
 
+# TODO fix
 def delta_linear_hidden(
     ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
 ):
@@ -46,6 +51,7 @@ def delta_linear_hidden(
 
     return np.tile(sigma_vect, reps=(n_inputs, 1))
 
+# TODO fix
 def delta_relu_hidden(
     nets: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
 ):
@@ -56,6 +62,7 @@ def delta_relu_hidden(
     return np.tile(d_relu_vect(sigma_vect, nets_vect), reps=(n_inputs, 1))
 
 
+# TODO fix
 def delta_sigmoid_hidden(
     output: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
 ):
@@ -66,6 +73,7 @@ def delta_sigmoid_hidden(
 
     return np.tile(output_vect * sigma_vect, reps=(n_inputs, 1))
 
+# TODO fix
 def delta_softmax_hidden(
     output: np.ndarray, ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
 ):

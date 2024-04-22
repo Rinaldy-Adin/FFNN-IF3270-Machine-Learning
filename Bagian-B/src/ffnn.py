@@ -83,11 +83,27 @@ class FFNN:
             self.backwards_propagation(layer_inputs, layer_nets)
 
     def update_w(self, layer_idx: int, delta: np.ndarray, inputs: list[float]):
-        input_mat = np.transpose(np.array(inputs))
-        input_mat = np.tile(input_mat, (1, self._layers[layer_idx].n_neurons))
-        self._layers[layer_idx].w += self._learning_rate * delta * input_mat
+        grad = delta * self._learning_rate
+
+        # print("delta:")
+        # print(delta)
+        # print()
+
+        # print("grad:")
+        # print(grad)
+        # print()
+
+        self._layers[layer_idx].w += grad
 
     def backwards_propagation(self, layer_inputs: list[list[float]], layer_nets: list[list[float]]):
+        # print("Inputs:")
+        # print(layer_inputs)
+
+        # print()
+        # print("nets:")
+        # print(layer_nets)
+        # print()
+
         ds_delta: np.ndarray = None
         for idx, layer in enumerate(reversed(self._layers)):
             layer_idx = (-1-idx) % len(self._layers)
@@ -95,6 +111,7 @@ class FFNN:
 
             if idx == 0:
                 target = np.array(self._targets[layer_idx]).transpose()
+                cur_layer_input = np.array(layer_inputs[layer_idx]).transpose()
 
                 if layer.activ_func == Activation_Function.SOFTMAX:
                     ds_delta = delta_softmax_output(self._current_output, target, layer.n_inputs)
@@ -103,7 +120,11 @@ class FFNN:
                 elif layer.activ_func == Activation_Function.SIGMOID:
                     ds_delta = delta_sigmoid_output(self._current_output, target, layer.n_inputs)
                 else:
-                    ds_delta = delta_linear_output(self._current_output, target, layer.n_inputs)
+                    ds_delta = delta_linear_output(self._current_output, target, cur_layer_input)
+
+                # print("delta:")
+                # print(ds_delta)
+                # print()
             else:
                 cur_delta = None
                 layer_outputs = np.array(layer_inputs[layer_idx + 1][1:])
@@ -120,40 +141,66 @@ class FFNN:
                 self.update_w(layer_idx + 1, ds_delta, layer_inputs[layer_idx + 1])
                 ds_delta = cur_delta
 
-if __name__ == "__main__":
-    n_attr = 4
-    n_classes = 3
-    learning_rate = 0.2
+        self.update_w(0, ds_delta, layer_inputs[0])
 
-    fnaf = FFNN(n_attr, n_classes, learning_rate)
+# if __name__ == "__main__":
+#     n_attr = 4
+#     n_classes = 3
+#     learning_rate = 0.2
 
-    data = []
+#     fnaf = FFNN(n_attr, n_classes, learning_rate)
 
-    with open('../data/iris.csv', newline='') as f:
-        reader = csv.reader(f)
-        data = list(reader)[1:]
+#     data = []
 
-    for row in data[:50]:
-        inputs = list(map(float, row[1:5]))
+#     with open('../data/iris.csv', newline='') as f:
+#         reader = csv.reader(f)
+#         data = list(reader)[1:]
 
-        if row[5] == "Iris-setosa":
-            target = [1.0,0.0,0.0]
-        elif row[5] == "Iris-versicolor":
-            target = [0.0,1.0,0.0]
-        else:
-            target = [0.0,0.0,1.0]
+#     for row in data[:50]:
+#         inputs = list(map(float, row[1:5]))
+
+#         if row[5] == "Iris-setosa":
+#             target = [1.0,0.0,0.0]
+#         elif row[5] == "Iris-versicolor":
+#             target = [0.0,1.0,0.0]
+#         else:
+#             target = [0.0,0.0,1.0]
         
-        fnaf.addInput(inputs, target)
+#         fnaf.addInput(inputs, target)
 
-    w_hidden = np.random.uniform(-0.5, 0.5, size=(5, 4))
-    w_out = np.random.uniform(-0.5, 0.5, size=(5, 3))
+#     w_hidden = np.random.uniform(-0.5, 0.5, size=(5, 4))
+#     w_out = np.random.uniform(-0.5, 0.5, size=(5, 3))
 
-    layer_hidden = Layer(w_hidden, Activation_Function.RELU)
-    layer_out = Layer(w_out, Activation_Function.SIGMOID)
+#     layer_hidden = Layer(w_hidden, Activation_Function.RELU)
+#     layer_out = Layer(w_out, Activation_Function.SIGMOID)
 
-    fnaf.addLayer(layer_hidden)
-    fnaf.addLayer(layer_out)
+#     fnaf.addLayer(layer_hidden)
+#     fnaf.addLayer(layer_out)
 
+#     fnaf.feed_forward()
+
+#     print(fnaf.get_output())
+
+if __name__ == "__main__":
+    with open('../models/linear_1.json', 'r') as f:
+        json_data = json.load(f)
+
+    # Extract data from JSON
+    input_size = json_data['case']['model']['input_size']
+    input_data = np.array(json_data['case']['input'])
+    target_data = np.array(json_data['case']['target'])
+    learning_rate = np.array(json_data['case']['learning_parameters']['learning_rate'])
+    initial_weights = [np.array(layer) for layer in json_data['case']['initial_weights']]
+
+    fnaf = FFNN(input_size, 3, learning_rate)
+
+    for idx, input in enumerate(input_data):
+        fnaf.addInput(input, target_data[idx])
+
+    for w in initial_weights:
+        fnaf.addLayer(Layer(w, Activation_Function.LINEAR))
+    
     fnaf.feed_forward()
-
-    print(fnaf.get_output())
+    
+    for layer in fnaf._layers:
+        print(layer.w)
