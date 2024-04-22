@@ -6,7 +6,7 @@ def d_relu(v: float, net: float):
 d_relu_vect = np.vectorize(d_relu)
 
 def d_softmax(o: float, net: float):
-    return -o if net == 1.0 else 1-0
+    return 1-o if net == 1.0 else -o
 
 d_softmax_vect = np.vectorize(d_softmax)
 
@@ -34,12 +34,11 @@ def delta_sigmoid_output(output: np.ndarray, target: np.ndarray, layer_inputs: n
     
     return layer_inputs * ((target_mat - output_mat) * output_mat * (1 - output_mat))
 
-# TODO fix
-def delta_softmax_output(output: np.ndarray, target: np.ndarray, n_inputs: int):
-    output_mat = np.tile(np.transpose(output), reps=(n_inputs, 1))
-    target_mat = np.tile(np.transpose(target), reps=(n_inputs, 1))
+def delta_softmax_output(output: np.ndarray, target: np.ndarray, layer_inputs: np.ndarray):
+    output_mat = np.transpose(output)
+    target_mat = np.transpose(target)
 
-    return d_softmax_vect(output_mat, target_mat)
+    return layer_inputs * d_softmax_vect(output_mat, target_mat)
 
 # TODO fix
 def delta_linear_hidden(
