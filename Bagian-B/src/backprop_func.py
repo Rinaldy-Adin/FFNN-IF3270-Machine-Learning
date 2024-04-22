@@ -1,52 +1,65 @@
 import numpy as np
 
 def d_relu(v: float, net: float):
+    print(0 if net < 0 else v)
     return 0 if net < 0 else v
 
-d_relu_vect = np.vectorize(d_relu)
+def d_relu_vect(v: np.ndarray, net: np.ndarray):
+    res = np.empty_like(v)
+    for row_idx, row in enumerate(v):
+        for col_idx, val in enumerate(row):
+            res[row_idx][col_idx] = 0 if net[row_idx][col_idx] < 0 else val
+    return res
 
 def d_softmax(o: float, net: float):
     return 1-o if net == 1.0 else -o
 
-d_softmax_vect = np.vectorize(d_softmax)
+def d_softmax_vect(o: np.ndarray, target: np.ndarray):
+    res = np.empty_like(o)
+    for row_idx, row in enumerate(o):
+        for col_idx, o_val in enumerate(row):
+            res[row_idx][col_idx] = 1-o_val if target[col_idx] == 1.0 else -o_val
+    return res
 
 """
 All variables output, target, nets, layer_input are in the form of
 single column matrix
 """
 
-def delta_linear_output(output: np.ndarray, target: np.ndarray, layer_inputs: np.ndarray):
+def delta_linear_output(output: np.ndarray, target: np.ndarray):
     output_mat = np.transpose(output)
     target_mat = np.transpose(target)
 
-    return layer_inputs * (target_mat - output_mat)
+    return (target_mat - output_mat)
 
-def delta_relu_output(output: np.ndarray, target: np.ndarray, nets: np.ndarray, layer_inputs: np.ndarray):
+def delta_relu_output(output: np.ndarray, target: np.ndarray, nets: np.ndarray):
     output_mat = np.transpose(output)
     target_mat = np.transpose(target)
     nets_mat = np.transpose(nets)
 
-    return layer_inputs * d_relu_vect(target_mat - output_mat, nets_mat)
+    res = d_relu_vect(target_mat - output_mat, nets_mat)
 
-def delta_sigmoid_output(output: np.ndarray, target: np.ndarray, layer_inputs: np.ndarray):
+    return res
+
+def delta_sigmoid_output(output: np.ndarray, target: np.ndarray):
     output_mat = np.transpose(output)
     target_mat = np.transpose(target)
     
-    return layer_inputs * ((target_mat - output_mat) * output_mat * (1 - output_mat))
+    return ((target_mat - output_mat) * output_mat * (1 - output_mat))
 
-def delta_softmax_output(output: np.ndarray, target: np.ndarray, layer_inputs: np.ndarray):
+def delta_softmax_output(output: np.ndarray, target: np.ndarray):
     output_mat = np.transpose(output)
     target_mat = np.transpose(target)
 
-    return layer_inputs * d_softmax_vect(output_mat, target_mat)
+    return d_softmax_vect(output_mat, target_mat)
 
-# TODO fix
 def delta_linear_hidden(
-    ds_delta: np.ndarray, ds_w: np.ndarray, n_inputs: int
+    ds_delta: np.ndarray, ds_w: np.ndarray
 ):
-    sigma_vect = np.array([[np.sum(ds_delta[row_idx] * ds_w[row_idx]) for row_idx in range(ds_w.shape[0])]])
+    sigma_delta_w = ds_delta * ds_w
+    sigma_list = np.sum(sigma_delta_w, axis=1).transpose()
 
-    return np.tile(sigma_vect, reps=(n_inputs, 1))
+    return np.array([sigma_list[1:]])
 
 # TODO fix
 def delta_relu_hidden(
