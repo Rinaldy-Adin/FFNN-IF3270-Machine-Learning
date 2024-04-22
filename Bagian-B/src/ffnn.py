@@ -19,10 +19,11 @@ class Layer:
 
 
 class FFNN:
-    def __init__(self, n_inputs: int, n_classes: int, learning_rate: float, batch_size: int) -> None:
+    def __init__(self, n_inputs: int, n_classes: int, learning_rate: float, batch_size: int, max_iter: int) -> None:
         self._n_inputs = n_inputs
         self._n_classes = n_classes
         self._batch_size = batch_size
+        self._max_iter = max_iter
 
         self._targets: list[list[float]] = []
         self._input: list[list[float]] = []
@@ -62,36 +63,37 @@ class FFNN:
         self._layers.append(newLayer)
 
     def feed_forward(self):
-        self.init_batch_grad()
-        for idx, cur_input in enumerate(self._input):
-            layer_inputs: list[list[float]] = []
-            layer_nets: list[list[float]] = []
+        for _ in range(self._max_iter):
+            self.init_batch_grad()
+            for idx, cur_input in enumerate(self._input):
+                layer_inputs: list[list[float]] = []
+                layer_nets: list[list[float]] = []
 
-            current = np.transpose(np.array([cur_input]))
-            bias = np.array([[1.0]])
+                current = np.transpose(np.array([cur_input]))
+                bias = np.array([[1.0]])
 
-            for _, layer in enumerate(self._layers):
-                current = np.concatenate((bias, current), axis=0)
-                layer_inputs.append(current.copy().transpose().tolist())
+                for _, layer in enumerate(self._layers):
+                    current = np.concatenate((bias, current), axis=0)
+                    layer_inputs.append(current.copy().transpose().tolist())
 
-                new_current = np.transpose(layer.w) @ current
-                current = new_current
-                layer_nets.append(current.copy().transpose().tolist())
+                    new_current = np.transpose(layer.w) @ current
+                    current = new_current
+                    layer_nets.append(current.copy().transpose().tolist())
 
-                if layer.activ_func == Activation_Function.RELU:
-                    current = reluVect(current)
-                elif layer.activ_func == Activation_Function.SIGMOID:
-                    current = sigmoidVect(current)
-                elif layer.activ_func == Activation_Function.SOFTMAX:
-                    current = softmax(current)
+                    if layer.activ_func == Activation_Function.RELU:
+                        current = reluVect(current)
+                    elif layer.activ_func == Activation_Function.SIGMOID:
+                        current = sigmoidVect(current)
+                    elif layer.activ_func == Activation_Function.SOFTMAX:
+                        current = softmax(current)
 
-            target = self._targets[idx]
-            self._current_output = current
-            self.backwards_propagation(layer_inputs, layer_nets, target)
+                target = self._targets[idx]
+                self._current_output = current
+                self.backwards_propagation(layer_inputs, layer_nets, target)
 
-            if idx + 1 == self._batch_size:
-                self.update_weights()
-                self.init_batch_grad()
+                if (idx + 1) % self._batch_size == 0 or idx + 1 == len(self._input):
+                    self.update_weights()
+                    self.init_batch_grad()
 
     def update_weights(self):
         for idx in range(len(self._layers)):
@@ -200,7 +202,7 @@ class FFNN:
 #     print(fnaf.get_output())
 
 if __name__ == "__main__":
-    with open('../models/linear.json', 'r') as f:
+    with open('../models/linear_small_lr.json', 'r') as f:
         json_data = json.load(f)
 
     # Extract data from JSON
@@ -211,8 +213,9 @@ if __name__ == "__main__":
     initial_weights = [np.array(layer) for layer in json_data['case']['initial_weights']]
     n_classes = json_data['case']['model']['layers'][-1]['number_of_neurons']
     batch_size = json_data['case']['learning_parameters']['batch_size']
+    max_iter = json_data['case']['learning_parameters']['max_iteration']
 
-    fnaf = FFNN(input_size, n_classes, learning_rate, batch_size)
+    fnaf = FFNN(input_size, n_classes, learning_rate, batch_size, max_iter)
 
     for idx, input in enumerate(input_data):
         fnaf.addInput(input, target_data[idx])
